@@ -4,15 +4,20 @@ from tkinter import ttk, messagebox, scrolledtext
 from datetime import datetime
 import sqlite3
 from sqlalchemy import desc
+import logging
 
 # Change this import line:
 # from app.models import JournalEntry
 # to:
 try:
     from app.models import JournalEntry
+    from app.db import get_session
 except ImportError:
-    # Fallback to direct SQLite
+    # Fallback/Error handling
     JournalEntry = None
+    get_session = None
+
+from analytics_dashboard import AnalyticsDashboard
 
 import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer

@@ -15,6 +15,9 @@ class User(Base):
     created_at = Column(String, default=lambda: datetime.utcnow().isoformat())
     last_login = Column(String, nullable=True)
 
+    scores = relationship("Score", back_populates="user", cascade="all, delete-orphan")
+    responses = relationship("Response", back_populates="user", cascade="all, delete-orphan")
+
 class Score(Base):
     __tablename__ = 'scores'
 

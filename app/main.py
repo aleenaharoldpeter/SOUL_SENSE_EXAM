@@ -35,6 +35,12 @@ except ImportError:
     logging.warning("Could not import SoulSenseMLPredictor")
     SoulSenseMLPredictor = None
 
+try:
+    from analytics_dashboard import AnalyticsDashboard
+except ImportError:
+    logging.warning("Could not import AnalyticsDashboard")
+    AnalyticsDashboard = None
+
 # Ensure VADER lexicon is downloaded
 try:
     nltk.data.find('sentiment/vader_lexicon.zip')
@@ -437,6 +443,19 @@ class SoulSenseApp:
             fg="black"
         )
         journal_btn.pack(pady=5)
+
+        # Dashboard Button (NEW)
+        dashboard_btn = self.create_widget(
+            tk.Button,
+            button_frame,
+            text="📊 Dashboard",
+            command=self.open_dashboard_flow,
+            font=("Arial", 12),
+            width=15,
+            bg="#29B6F6", # Light Blue accent
+            fg="black"
+        )
+        dashboard_btn.pack(pady=5)
         
         # View History button
         history_btn = self.create_widget(
@@ -479,6 +498,21 @@ class SoulSenseApp:
                 return
         
         self.journal_feature.open_journal_window(self.username)
+
+    def open_dashboard_flow(self):
+        """Handle dashboard access, prompting for name if needed"""
+        if not self.username:
+            name = simpledialog.askstring("Dashboard Access", "Please enter your name to view your dashboard:", parent=self.root)
+            if name and name.strip():
+                self.username = name.strip()
+            else:
+                return
+        
+        if AnalyticsDashboard:
+            dashboard = AnalyticsDashboard(self.root, self.username)
+            dashboard.open_dashboard()
+        else:
+            messagebox.showerror("Error", "Dashboard component could not be loaded")
 
     def run_bias_check(self):
         """Quick bias check after test completion"""
