@@ -144,7 +144,7 @@ class ExamManager:
             activebackground=colors.get("surface", "#FFFFFF"),
             activeforeground=colors.get("primary", "#3B82F6"),
             bd=0,
-            cursor="help",
+            cursor="hand2",
             command=lambda: self._show_tooltip(tooltip_text)
         )
         info_btn.pack(side="right", padx=5)
