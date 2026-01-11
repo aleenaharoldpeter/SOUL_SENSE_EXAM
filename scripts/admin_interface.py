@@ -10,6 +10,18 @@ from datetime import datetime
 import json
 import hashlib
 
+# Safe import for Matplotlib
+try:
+    import matplotlib
+    matplotlib.use('TkAgg')
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+    from matplotlib.figure import Figure
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    PLOTTING_AVAILABLE = True
+except ImportError:
+    PLOTTING_AVAILABLE = False
+
 
 class QuestionDatabase:
     """Handles database operations for questions"""
@@ -359,6 +371,11 @@ class AdminInterface:
         cat_frame = ttk.Frame(notebook)
         notebook.add(cat_frame, text="🏷️ Categories")
         self.create_categories_tab(cat_frame)
+
+        # Tab 5: Analytics
+        analytics_frame = ttk.Frame(notebook)
+        notebook.add(analytics_frame, text="📊 Analytics")
+        self.create_analytics_tab(analytics_frame)
         
         self.main_window.mainloop()
     
@@ -752,6 +769,140 @@ class AdminInterface:
         # Populate tree
         for category, count in sorted(category_counts.items()):
             self.cat_tree.insert("", tk.END, values=(category, count))
+
+    def create_analytics_tab(self, parent):
+        """Create analytics dashboard tab"""
+        if not PLOTTING_AVAILABLE:
+            error_frame = tk.Frame(parent)
+            error_frame.pack(expand=True, fill=tk.BOTH)
+            tk.Label(error_frame, 
+                    text="⚠️ Analytics Unavailable\n\nPlease install 'matplotlib' and 'seaborn' to view charts.\nRun: pip install matplotlib seaborn",
+                    font=("Arial", 14), fg="red").pack(expand=True)
+            return
+
+        # Main container with scrollbar
+        canvas = tk.Canvas(parent)
+        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # Title and Refresh
+        header_frame = tk.Frame(scrollable_frame)
+        header_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        tk.Label(header_frame, text="Exam Analytics Dashboard", 
+                font=("Arial", 16, "bold")).pack(side=tk.LEFT)
+        
+        tk.Button(header_frame, text="🔄 Refresh Data", command=lambda: self.refresh_analytics(scrollable_frame),
+                 bg="#2196F3", fg="white", font=("Arial", 10, "bold")).pack(side=tk.RIGHT)
+
+        # Content Frame (Placeholders for charts)
+        self.charts_frame = tk.Frame(scrollable_frame)
+        self.charts_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Initial Load
+        self.refresh_analytics(self.charts_frame)
+
+    def refresh_analytics(self, parent_frame):
+        """Refresh and redraw all charts"""
+        # Clear existing widgets
+        for widget in parent_frame.winfo_children():
+            widget.destroy()
+            
+        try:
+            # Connect to REAL user database (soulsense.db) not questions DB
+            # Note: Admin tool usually manages questions, but analytics needs USER scores.
+            # We'll need to connect to the main app DB path.
+            from app.config import DB_PATH
+            conn = sqlite3.connect(DB_PATH)
+            
+            # --- Summary Stats ---
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*), AVG(total_score) FROM scores")
+            total_exams, avg_score = cursor.fetchone()
+            
+            cursor.execute("SELECT COUNT(DISTINCT username) FROM scores")
+            active_users = cursor.fetchone()[0]
+            
+            summary_frame = tk.Frame(parent_frame, bg="#f0f0f0", pbd=1, relief="solid")
+            summary_frame.pack(fill=tk.X, pady=10)
+            
+            stats = [
+                ("Total Exams", total_exams or 0),
+                ("Avg Score", f"{avg_score:.1f}" if avg_score else "N/A"),
+                ("Active Users", active_users or 0)
+            ]
+            
+            for i, (label, value) in enumerate(stats):
+                f = tk.Frame(summary_frame, bg="white", padx=20, pady=10)
+                f.grid(row=0, column=i, sticky="ew", padx=10, pady=10)
+                tk.Label(f, text=label, font=("Arial", 10, "bold"), bg="white", fg="#666").pack()
+                tk.Label(f, text=str(value), font=("Arial", 20, "bold"), bg="white", fg="#2196F3").pack()
+                
+            summary_frame.grid_columnconfigure(0, weight=1)
+            summary_frame.grid_columnconfigure(1, weight=1)
+            summary_frame.grid_columnconfigure(2, weight=1)
+            
+            # --- Chart 1: Score Distribution ---
+            cursor.execute("SELECT total_score FROM scores WHERE total_score IS NOT NULL")
+            scores = [r[0] for r in cursor.fetchall()]
+            
+            if scores:
+                fig1 = Figure(figsize=(6, 4), dpi=100)
+                ax1 = fig1.add_subplot(111)
+                sns.histplot(scores, bins=10, kde=True, ax=ax1, color='skyblue')
+                ax1.set_title("Score Distribution")
+                ax1.set_xlabel("Score")
+                ax1.set_ylabel("Count")
+                
+                chart1_frame = tk.Frame(parent_frame)
+                chart1_frame.pack(fill=tk.X, pady=10)
+                canvas1 = FigureCanvasTkAgg(fig1, master=chart1_frame)
+                canvas1.draw()
+                canvas1.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+            # --- Chart 2: Age Demographics ---
+            cursor.execute("SELECT age FROM scores WHERE age IS NOT NULL")
+            ages = [r[0] for r in cursor.fetchall()]
+            
+            if ages:
+                age_groups = {'Child': 0, 'Teen': 0, 'Adult': 0, 'Senior': 0}
+                for age in ages:
+                    if age < 13: age_groups['Child'] += 1
+                    elif age < 20: age_groups['Teen'] += 1
+                    elif age < 60: age_groups['Adult'] += 1
+                    else: age_groups['Senior'] += 1
+                
+                # Filter zero values
+                labels = [k for k, v in age_groups.items() if v > 0]
+                values = [v for k, v in age_groups.items() if v > 0]
+                
+                if values:
+                    fig2 = Figure(figsize=(6, 4), dpi=100)
+                    ax2 = fig2.add_subplot(111)
+                    ax2.pie(values, labels=labels, autopct='%1.1f%%', startangle=90)
+                    ax2.set_title("User Age Demographics")
+                    
+                    chart2_frame = tk.Frame(parent_frame)
+                    chart2_frame.pack(fill=tk.X, pady=10)
+                    canvas2 = FigureCanvasTkAgg(fig2, master=chart2_frame)
+                    canvas2.draw()
+                    canvas2.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+            conn.close()
+
+        except Exception as e:
+            tk.Label(parent_frame, text=f"Error loading analytics: {e}", fg="red").pack(pady=20)
 
 
 def main():
