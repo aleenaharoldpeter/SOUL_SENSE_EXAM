@@ -2911,3 +2911,75 @@ TypeError: 'Response' object is not subscriptable
 2026-01-11 13:12:25,010 - app.ml.clustering - INFO - Optimal clusters: 2, using configured: 4
 2026-01-11 13:12:25,880 - app.ml.clustering - INFO - Model saved to B:\Open_Source\soul_sence_Exam\SOUL_SENSE_EXAM\app\ml\models\clustering\emotional_profile_model.pkl
 2026-01-11 13:12:25,882 - app.ml.clustering - INFO - Clustering complete: 50 users into 4 profiles
+2026-01-11 13:20:39,564 - root - INFO - Logging initialized.
+2026-01-11 13:20:39,603 - root - INFO - Application started
+2026-01-11 13:20:39,607 - root - INFO - Loaded 10 total questions from DB
+2026-01-11 13:20:42,478 - root - ERROR - Failed to initialize ML Predictor: 'NoneType' object is not callable
+2026-01-11 13:20:42,478 - root - CRITICAL - Unhandled exception in GUI
+Traceback (most recent call last):
+  File "C:\Python312\Lib\tkinter\__init__.py", line 1968, in __call__
+    return self.func(*args)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\tkinter\__init__.py", line 862, in callit
+    func(*args)
+  File "B:\Open_Source\soul_sence_Exam\SOUL_SENSE_EXAM\app\main.py", line 566, in launch_main_app
+    app = SoulSenseApp(root)
+          ^^^^^^^^^^^^^^^^^^
+  File "B:\Open_Source\soul_sence_Exam\SOUL_SENSE_EXAM\app\main.py", line 181, in __init__
+    self.journal_feature = JournalFeature(self.root)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: 'NoneType' object is not callable
+2026-01-11 13:20:42,517 - root - ERROR - Unexpected Error: An unexpected error occurred.
+2026-01-11 13:21:07,505 - root - INFO - Logging initialized.
+2026-01-11 13:21:07,505 - root - INFO - Application started
+2026-01-11 13:21:07,508 - root - INFO - Loaded 10 total questions from DB
+2026-01-11 13:21:09,760 - root - ERROR - Failed to initialize ML Predictor: 'NoneType' object is not callable
+2026-01-11 13:21:09,763 - root - CRITICAL - Unhandled exception in GUI
+Traceback (most recent call last):
+  File "C:\Python312\Lib\tkinter\__init__.py", line 1968, in __call__
+    return self.func(*args)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\tkinter\__init__.py", line 862, in callit
+    func(*args)
+  File "B:\Open_Source\soul_sence_Exam\SOUL_SENSE_EXAM\app\main.py", line 566, in launch_main_app
+    app = SoulSenseApp(root)
+          ^^^^^^^^^^^^^^^^^^
+  File "B:\Open_Source\soul_sence_Exam\SOUL_SENSE_EXAM\app\main.py", line 181, in __init__
+    self.journal_feature = JournalFeature(self.root)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: 'NoneType' object is not callable
+2026-01-11 13:21:09,776 - root - ERROR - Unexpected Error: An unexpected error occurred.
+2026-01-11 13:23:14,685 - root - INFO - Logging initialized.
+2026-01-11 13:23:14,739 - root - INFO - Application started
+2026-01-11 13:23:14,749 - root - INFO - Loaded 10 total questions from DB
+2026-01-11 13:23:19,041 - root - INFO - ML Predictor initialized successfully
+2026-01-11 13:23:19,098 - root - INFO - SentimentIntensityAnalyzer initialized successfully
+2026-01-11 13:23:19,112 - root - INFO - Using 5 questions based on settings
+2026-01-11 13:23:52,365 - root - INFO - Session started | user=rohan | age=20 | age_group=adult | profession=Student | questions=5
+2026-01-11 13:24:10,657 - root - CRITICAL - Unhandled exception in GUI
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tkinter\__init__.py", line 2088, in __call__
+    return self.func(*args)
+           ~~~~~~~~~^^^^^^^
+  File "C:\Python314\Lib\tkinter\__init__.py", line 876, in callit
+    func(*args, **kw)
+    ~~~~^^^^^^^^^^^^^
+  File "B:\Open_Source\soul_sence_Exam\SOUL_SENSE_EXAM\app\main.py", line 575, in launch_main_app
+    root.mainloop()
+    ~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tkinter\__init__.py", line 1613, in mainloop
+    self.tk.mainloop(n)
+    ~~~~~~~~~~~~~~~~^^^
+KeyboardInterrupt
+2026-01-11 13:24:10,671 - root - ERROR - Unexpected Error: An unexpected error occurred.
+2026-01-11 13:24:27,414 - app.db - ERROR - Unexpected error in DB context: 'Response' object is not subscriptable
+Traceback (most recent call last):
+  File "B:\Open_Source\soul_sence_Exam\SOUL_SENSE_EXAM\app\db.py", line 32, in safe_db_context
+    yield session
+  File "B:\Open_Source\soul_sence_Exam\SOUL_SENSE_EXAM\app\analysis\time_based_analysis.py", line 218, in analyze_response_patterns_over_time
+    all_values = [r["response_value"] for r in responses]
+                  ~^^^^^^^^^^^^^^^^^^
+TypeError: 'Response' object is not subscriptable
+2026-01-11 13:24:27,437 - app.analysis.time_based_analysis - ERROR - Error analyzing response patterns for rohan: An unexpected database error occurred.
+2026-01-11 13:24:27,560 - app.ml.clustering - INFO - Model loaded from B:\Open_Source\soul_sence_Exam\SOUL_SENSE_EXAM\app\ml\models\clustering\emotional_profile_model.pkl
+2026-01-11 13:24:44,412 - app.ml.clustering - INFO - Model loaded from B:\Open_Source\soul_sence_Exam\SOUL_SENSE_EXAM\app\ml\models\clustering\emotional_profile_model.pkl

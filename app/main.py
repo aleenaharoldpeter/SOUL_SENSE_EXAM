@@ -178,7 +178,11 @@ class SoulSenseApp:
             self.ml_predictor = None
 
         # Initialize Journal Feature
-        self.journal_feature = JournalFeature(self.root)
+        if JournalFeature:
+            self.journal_feature = JournalFeature(self.root)
+        else:
+            self.journal_feature = None
+            logging.warning("JournalFeature disabled: Module could not be imported")
 
 
 
