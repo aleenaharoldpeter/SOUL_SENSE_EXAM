@@ -124,6 +124,52 @@ class JournalEntry(Base):
     energy_level = Column(Integer, nullable=True)  # Range: 1-10
     work_hours = Column(Float, nullable=True)      # Range: 0-24
 
+class SatisfactionRecord(Base):
+    __tablename__ = 'satisfaction_records'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.id'), index=True, nullable=True)
+    username = Column(String, index=True)
+    timestamp = Column(String, default=lambda: datetime.utcnow().isoformat(), index=True)
+    
+    # Core satisfaction metrics
+    satisfaction_score = Column(Integer, index=True)  # 1-10 scale
+    satisfaction_category = Column(String, index=True)  # 'work', 'academic', 'both', 'other'
+    
+    # Detailed factors (JSON encoded for flexibility)
+    positive_factors = Column(Text, nullable=True)  # JSON list
+    negative_factors = Column(Text, nullable=True)  # JSON list
+    improvement_suggestions = Column(Text, nullable=True)
+    
+    # Context information
+    context = Column(String, nullable=True)  # 'workplace', 'school', 'university', 'remote', 'hybrid'
+    duration_months = Column(Integer, nullable=True)  # How long in current role/studies
+    
+    # Optional: Link to EQ test if taken around same time
+    eq_score_id = Column(Integer, ForeignKey('scores.id'), nullable=True, index=True)
+    
+    # Composite indexes
+    __table_args__ = (
+        Index('idx_satisfaction_user_time', 'user_id', 'timestamp'),
+        Index('idx_satisfaction_category_score', 'satisfaction_category', 'satisfaction_score'),
+        Index('idx_satisfaction_context', 'context', 'satisfaction_score'),
+    )
+
+class SatisfactionHistory(Base):
+    """Track satisfaction trends over time"""
+    __tablename__ = 'satisfaction_history'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), index=True, nullable=False)
+    month_year = Column(String, index=True)  # Format: 'YYYY-MM'
+    avg_satisfaction = Column(Float)
+    trend = Column(String)  # 'improving', 'declining', 'stable'
+    insights = Column(Text, nullable=True)
+    
+    __table_args__ = (
+        Index('idx_satisfaction_history_user_month', 'user_id', 'month_year'),
+    )
+    
 # Simple function to get session (from upstream)
 def get_session():
     from app.db import get_session as get_db_session
