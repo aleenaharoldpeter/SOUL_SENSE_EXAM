@@ -1,4 +1,4 @@
-# analytics_dashboard.py - COMPLETE FIXED VERSION (Merged)
+# app/ui/dashboard.py - FIXED VERSION
 import tkinter as tk
 from tkinter import ttk
 from datetime import datetime
@@ -15,10 +15,7 @@ import sqlite3
 import numpy as np
 
 from app.i18n_manager import get_i18n
-
-# REMOVE THIS LINE - it's causing the error
-# from app.models import get_session, Score, JournalEntry
-from app.models import Score, JournalEntry
+from app.models import Score, JournalEntry, SatisfactionRecord
 from app.db import get_session, get_connection
 from app.analysis.time_based_analysis import time_analyzer
 
@@ -130,6 +127,127 @@ class AnalyticsDashboard:
             notebook.add(clustering_frame, text="🧬 Emotional Profile")
             self.show_emotional_profile(clustering_frame)
         
+        # Add Satisfaction Analytics Tab
+        satisfaction_frame = ttk.Frame(notebook)
+        notebook.add(satisfaction_frame, text="💼 Satisfaction")
+        self.show_satisfaction_analytics(satisfaction_frame)
+        
+    def show_satisfaction_analytics(self, parent):
+        """Show satisfaction analytics"""
+        # Fetch satisfaction data
+        session = get_session()
+        try:
+            records = session.query(SatisfactionRecord).filter(
+                SatisfactionRecord.username == self.username
+            ).order_by(SatisfactionRecord.timestamp.desc()).all()
+            
+            if not records:
+                tk.Label(parent, 
+                        text="No satisfaction data available.\n\n"
+                             "Complete a satisfaction survey to see your trends!",
+                        font=("Arial", 14)).pack(pady=50)
+                return
+            
+            # Title
+            tk.Label(parent, 
+                    text="📊 Work/Study Satisfaction Trends",
+                    font=("Arial", 16, "bold")).pack(pady=10)
+            
+            # Overall stats
+            stats_frame = tk.Frame(parent, bg="#f0f9ff", relief=tk.RIDGE, bd=2)
+            stats_frame.pack(fill="x", padx=20, pady=10)
+            
+            avg_score = sum(r.satisfaction_score for r in records) / len(records)
+            latest = records[0].satisfaction_score
+            
+            tk.Label(stats_frame, 
+                    text=f"Latest Score: {latest}/10 | Average: {avg_score:.1f}/10 | Total Surveys: {len(records)}",
+                    font=("Arial", 12, "bold"),
+                    bg="#f0f9ff").pack(pady=10)
+            
+            # Create matplotlib chart
+            fig = Figure(figsize=(8, 4), dpi=100)
+            ax = fig.add_subplot(111)
+            
+            # Plot satisfaction scores over time
+            dates = [datetime.fromisoformat(r.timestamp) for r in records]
+            scores = [r.satisfaction_score for r in records]
+            
+            ax.plot(dates, scores, 'o-', color='#8B5CF6', linewidth=2, markersize=8)
+            ax.fill_between(dates, scores, alpha=0.2, color='#8B5CF6')
+            ax.set_xlabel('Date')
+            ax.set_ylabel('Satisfaction Score (1-10)')
+            ax.set_title('Satisfaction Trend Over Time')
+            ax.grid(True, alpha=0.3)
+            
+            # Format x-axis dates
+            fig.autofmt_xdate()
+            
+            # Embed in tkinter
+            canvas = FigureCanvasTkAgg(fig, parent)
+            canvas.draw()
+            canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+            
+            # Factors analysis
+            factors_frame = tk.Frame(parent)
+            factors_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+            
+            tk.Label(factors_frame,
+                    text="📈 Top Factors Affecting Your Satisfaction",
+                    font=("Arial", 14, "bold")).pack(anchor="w", pady=10)
+            
+            # Analyze common factors
+            positive_counts = {}
+            negative_counts = {}
+            
+            for record in records:
+                if record.positive_factors:
+                    factors = json.loads(record.positive_factors)
+                    for factor in factors:
+                        positive_counts[factor] = positive_counts.get(factor, 0) + 1
+                
+                if record.negative_factors:
+                    factors = json.loads(record.negative_factors)
+                    for factor in factors:
+                        negative_counts[factor] = negative_counts.get(factor, 0) + 1
+            
+            # Display top factors
+            cols_frame = tk.Frame(factors_frame)
+            cols_frame.pack(fill=tk.BOTH, expand=True)
+            
+            # Positive factors column
+            pos_frame = tk.Frame(cols_frame, relief=tk.GROOVE, bd=1)
+            pos_frame.pack(side="left", fill=tk.BOTH, expand=True, padx=(0, 5))
+            
+            tk.Label(pos_frame, text="✅ Strengths", 
+                    font=("Arial", 12, "bold")).pack(pady=10)
+            
+            for factor, count in sorted(positive_counts.items(), key=lambda x: x[1], reverse=True)[:3]:
+                percentage = (count / len(records)) * 100
+                tk.Label(pos_frame, 
+                        text=f"• {factor} ({percentage:.0f}% of surveys)",
+                        font=("Arial", 10)).pack(anchor="w", padx=10, pady=2)
+            
+            # Negative factors column
+            neg_frame = tk.Frame(cols_frame, relief=tk.GROOVE, bd=1)
+            neg_frame.pack(side="right", fill=tk.BOTH, expand=True, padx=(5, 0))
+            
+            tk.Label(neg_frame, text="⚠️ Challenges", 
+                    font=("Arial", 12, "bold")).pack(pady=10)
+            
+            for factor, count in sorted(negative_counts.items(), key=lambda x: x[1], reverse=True)[:3]:
+                percentage = (count / len(records)) * 100
+                tk.Label(neg_frame, 
+                        text=f"• {factor} ({percentage:.0f}% of surveys)",
+                        font=("Arial", 10)).pack(anchor="w", padx=10, pady=2)
+            
+        except Exception as e:
+            tk.Label(parent, 
+                    text=f"Error loading satisfaction data: {str(e)}",
+                    font=("Arial", 12), fg="red").pack(pady=50)
+        finally:
+            session.close()
+    
     # ========== NEW CORRELATION ANALYSIS METHOD ==========
     def show_correlation_analysis(self, parent):
         """Show correlation analysis between EQ scores"""
