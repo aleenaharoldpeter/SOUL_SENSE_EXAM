@@ -184,9 +184,13 @@ class QuestionDatabase:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        cursor.execute("SELECT id, username, advice_language, advice_tone, created_at FROM users ORDER BY username")
-        columns = [desc[0] for desc in cursor.description]
-        users = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        try:
+            cursor.execute("SELECT id, username, advice_language, advice_tone, created_at FROM users ORDER BY username")
+            columns = [desc[0] for desc in cursor.description]
+            users = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        except sqlite3.OperationalError:
+            # Table doesn't exist or columns missing
+            users = []
         
         conn.close()
         return users
@@ -831,6 +835,11 @@ class AdminInterface:
             self.prefs_tree.delete(item)
         
         users = self.db.get_all_users()
+        if not users:
+            # Show message if no users found
+            self.prefs_tree.insert("", tk.END, values=("No users found", "-", "-", "-"))
+            return
+        
         for u in users:
             self.prefs_tree.insert("", tk.END, values=(
                 u['username'],
