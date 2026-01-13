@@ -1,35 +1,55 @@
-# journal_feature.py - Fix the imports at the top
+# app/ui/journal.py
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 from datetime import datetime, timedelta
-import sqlite3
-
 import logging
-from app.i18n_manager import get_i18n
-
-from sqlalchemy import desc, text
-from app.models import JournalEntry
-from app.db import get_session
-
-try:
-    from app.ui.dashboard import AnalyticsDashboard
-except ImportError:
-    AnalyticsDashboard = None
 
 import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
+from sqlalchemy import desc, text
+
+from app.i18n_manager import get_i18n
+from app.models import JournalEntry
+from app.db import get_session
+
+# Lazy imports to avoid circular dependencies
+# These will be imported only when needed
+AnalyticsDashboard = None
+DailyHistoryView = None
 
 
 class JournalFeature:
     def __init__(self, parent_root, app=None):
-        self.parent_root = parent_root
-        self.app = app # Store app reference for theming
-
-        self.i18n = get_i18n()
-        # Database setup is handled efficiently by app.db.check_db_state or migration
-
+        """
+        Initialize Journal Feature
         
-        # Initialize VADER
+        Args:
+            parent_root: The parent tkinter root window
+            app: Optional SoulSenseApp instance. If None, feature works in standalone mode
+        """
+        self.parent_root = parent_root
+        self.app = app  # Store app reference for theming (can be None)
+        self.i18n = get_i18n()
+        
+        # Initialize theme colors (with defaults)
+        self.colors = {
+            "bg_primary": "#f0f0f0",
+            "bg_secondary": "#f5f5f5",
+            "surface": "white",
+            "text_primary": "black",
+            "text_secondary": "#666",
+            "secondary": "#8B5CF6"
+        }
+        
+        # Use app colors if available
+        if app and hasattr(app, 'colors'):
+            self.colors = app.colors
+        
+        # Initialize VADER sentiment analyzer
+        self._initialize_sentiment_analyzer()
+        
+    def _initialize_sentiment_analyzer(self):
+        """Initialize the VADER sentiment analyzer"""
         try:
             nltk.data.find('sentiment/vader_lexicon.zip')
         except LookupError:
@@ -37,60 +57,70 @@ class JournalFeature:
             
         try:
             self.sia = SentimentIntensityAnalyzer()
-        except:
+        except Exception as e:
+            logging.error(f"Failed to initialize sentiment analyzer: {e}")
             self.sia = None
 
-        
     def open_journal_window(self, username):
         """Open the journal window"""
         self.username = username
         self.journal_window = tk.Toplevel(self.parent_root)
         self.journal_window.title(self.i18n.get("journal.title"))
         self.journal_window.geometry("600x500")
+        self.journal_window.configure(bg=self.colors["bg_primary"])
         
         # Title
         tk.Label(self.journal_window, text=self.i18n.get("journal.daily_reflection"), 
-                font=("Arial", 16, "bold")).pack(pady=10)
+                font=("Arial", 16, "bold"), bg=self.colors["bg_primary"], 
+                fg=self.colors["text_primary"]).pack(pady=10)
         
         # Date display
         today = datetime.now().strftime("%Y-%m-%d")
         tk.Label(self.journal_window, text=self.i18n.get("journal.date", date=today), 
-                font=("Arial", 12)).pack(pady=5)
+                font=("Arial", 12), bg=self.colors["bg_primary"], 
+                fg=self.colors["text_secondary"]).pack(pady=5)
         
-        # --- Metrics Section (Issues #255, #267, #272) ---
-        # Using a Frame to center or limit width if needed
-        metrics_container = tk.Frame(self.journal_window)
+        # --- Metrics Section ---
+        metrics_container = tk.Frame(self.journal_window, bg=self.colors["bg_primary"])
         metrics_container.pack(fill=tk.X, padx=20, pady=5)
                            
-        metrics_frame = tk.LabelFrame(metrics_container, text=self.i18n.get("journal.metrics_title"), font=("Arial", 14, "bold"))
-        metrics_frame.pack(anchor=tk.CENTER, ipadx=50, pady=5) # Centered and wider
+        metrics_frame = tk.LabelFrame(metrics_container, text=self.i18n.get("journal.metrics_title"), 
+                                     font=("Arial", 14, "bold"), bg=self.colors["surface"],
+                                     fg=self.colors["text_primary"])
+        metrics_frame.pack(anchor=tk.CENTER, ipadx=50, pady=5)
         
         # Grid Configuration
-        # Grid Configuration for Metrics
         metrics_frame.columnconfigure((1, 3), weight=1)
         
         def create_slider(parent, label_text, from_, to_, row, col, variable, resolution=1):
             # Label
-            tk.Label(parent, text=label_text, font=("Arial", 12)).grid(row=row, column=col, padx=10, pady=8, sticky="w")
+            tk.Label(parent, text=label_text, font=("Arial", 12), 
+                    bg=self.colors["surface"], fg=self.colors["text_primary"]).grid(
+                    row=row, column=col, padx=10, pady=8, sticky="w")
             
             # Container for Slider + Value Label
-            container = tk.Frame(parent)
+            container = tk.Frame(parent, bg=self.colors["surface"])
             container.grid(row=row, column=col+1, padx=10, pady=8, sticky="ew")
             
             # Value Label (Updates dynamically)
-            val_label = tk.Label(container, text=f"{variable.get():g}", width=4, font=("Arial", 12, "bold"))
+            val_label = tk.Label(container, text=f"{variable.get():g}", width=4, 
+                                font=("Arial", 12, "bold"), bg=self.colors["surface"],
+                                fg=self.colors["text_primary"])
             val_label.pack(side=tk.RIGHT)
             
             # Slider command
             def on_scroll(val):
                 v = float(val)
-                if resolution == 1: v = int(v)
-                else: v = round(v, 1)
+                if resolution == 1: 
+                    v = int(v)
+                else: 
+                    v = round(v, 1)
                 variable.set(v)
                 val_label.config(text=f"{v:g}")
 
             # Slider
-            scale = ttk.Scale(container, from_=from_, to=to_, orient="horizontal", variable=variable, command=on_scroll)
+            scale = ttk.Scale(container, from_=from_, to=to_, orient="horizontal", 
+                             variable=variable, command=on_scroll)
             scale.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         # Row 0: Sleep Duration & Quality
@@ -110,15 +140,18 @@ class JournalFeature:
         
         # Text area for journal entry
         tk.Label(self.journal_window, text=self.i18n.get("journal.write_reflection"), 
-                font=("Arial", 12)).pack(pady=(10,5))
+                font=("Arial", 12), bg=self.colors["bg_primary"], 
+                fg=self.colors["text_primary"]).pack(pady=(10,5))
         
         self.text_area = scrolledtext.ScrolledText(self.journal_window, 
                                                   width=70, height=15, 
-                                                  font=("Arial", 11))
+                                                  font=("Arial", 11),
+                                                  bg=self.colors["surface"],
+                                                  fg=self.colors["text_primary"])
         self.text_area.pack(pady=10, padx=20)
         
         # Buttons
-        button_frame = tk.Frame(self.journal_window)
+        button_frame = tk.Frame(self.journal_window, bg=self.colors["bg_primary"])
         button_frame.pack(pady=10)
         
         tk.Button(button_frame, text=self.i18n.get("journal.save_analyze"), 
@@ -160,7 +193,8 @@ class JournalFeature:
             negative_count = sum(1 for word in negative_words if word in text_lower)
             
             total_words = len(text.split())
-            if total_words == 0: return 0.0
+            if total_words == 0: 
+                return 0.0
             
             score = (positive_count - negative_count) / max(total_words, 1) * 100
             return max(-100, min(100, score))
@@ -229,7 +263,7 @@ class JournalFeature:
             session.add(entry)
             session.commit()
             
-            # Check for expanded health insights (PR 1.6)
+            # Check for expanded health insights
             health_insights = self.generate_health_insights()
             
             # Show analysis results with insights
@@ -247,25 +281,20 @@ class JournalFeature:
     
     def show_analysis_results(self, sentiment_score, patterns, nudge_advice=None):
         """Display AI analysis results"""
-        # Determine colors based on app theme if available
-        bg_color = "#f5f5f5"
-        card_bg = "white"
-        text_color = "black"
-        subtext_color = "#666"
+        # Use stored colors
+        bg_color = self.colors.get("bg_secondary", "#f5f5f5")
+        card_bg = self.colors.get("surface", "white")
+        text_color = self.colors.get("text_primary", "black")
+        subtext_color = self.colors.get("text_secondary", "#666")
         nudge_bg = "#FFF3E0"
         nudge_text_color = "#333"
         nudge_title_color = "#EF6C00"
         
-        if self.app and hasattr(self.app, 'colors'):
-            bg_color = self.app.colors.get("bg_secondary", "#f5f5f5")
-            card_bg = self.app.colors.get("surface", "white")
-            text_color = self.app.colors.get("text_primary", "black")
-            subtext_color = self.app.colors.get("text_secondary", "#666")
-            # Adjust nudge colors for dark mode if needed
-            if getattr(self.app, 'current_theme', 'light') == 'dark':
-                nudge_bg = self.app.colors.get("bg_tertiary", "#334155")
-                nudge_text_color = self.app.colors.get("text_primary", "#F8FAFC")
-                nudge_title_color = "#FFA726" # Lighter orange for dark mode
+        # Adjust for dark mode if theme is known
+        if self.app and hasattr(self.app, 'current_theme') and self.app.current_theme == 'dark':
+            nudge_bg = self.colors.get("bg_tertiary", "#334155")
+            nudge_text_color = self.colors.get("text_primary", "#F8FAFC")
+            nudge_title_color = "#FFA726"
         
         result_window = tk.Toplevel(self.journal_window)
         result_window.title(self.i18n.get("journal.analysis_title"))
@@ -286,15 +315,15 @@ class JournalFeature:
         # Sentiment interpretation
         if sentiment_score > 20:
             sentiment_text = self.i18n.get("journal.positive_tone")
-            color = "#4CAF50" # Green (keep standard colors for status)
+            color = "#4CAF50"
             emoji = "😊"
         elif sentiment_score < -20:
             sentiment_text = self.i18n.get("journal.negative_tone")
-            color = "#F44336" # Red
+            color = "#F44336"
             emoji = "😔"
         else:
             sentiment_text = self.i18n.get("journal.neutral_tone")
-            color = "#2196F3" # Blue
+            color = "#2196F3"
             emoji = "😐"
         
         tk.Label(card_frame, text=f"{emoji} Sentiment Score: {sentiment_score:.1f}", 
@@ -310,7 +339,7 @@ class JournalFeature:
                 font=("Arial", 11), wraplength=380, bg=bg_color, fg=text_color)
         lbl_patterns.pack(pady=5)
         
-        # --- Nudge Section (New) ---
+        # --- Nudge Section ---
         if nudge_advice:
             nudge_frame = tk.Frame(main_frame, bg=nudge_bg, relief=tk.FLAT, bd=0)
             nudge_frame.pack(fill=tk.X, pady=15, ipadx=10, ipady=10)
@@ -319,8 +348,8 @@ class JournalFeature:
                     font=("Arial", 11, "bold"), bg=nudge_bg, fg=nudge_title_color).pack(anchor="w")
             
             tk.Label(nudge_frame, text=nudge_advice, 
-                    font=("Arial", 10), bg=nudge_bg, fg=nudge_text_color, justify="left", wraplength=360).pack(anchor="w", pady=(5,0))
-        # ---------------------------
+                    font=("Arial", 10), bg=nudge_bg, fg=nudge_text_color, 
+                    justify="left", wraplength=360).pack(anchor="w", pady=(5,0))
         
         tk.Button(main_frame, text=self.i18n.get("journal.close"), 
                  command=result_window.destroy, 
@@ -331,24 +360,33 @@ class JournalFeature:
         entries_window = tk.Toplevel(self.journal_window)
         entries_window.title(self.i18n.get("journal.past_entries_title"))
         entries_window.geometry("700x500")
+        entries_window.configure(bg=self.colors["bg_primary"])
         
         tk.Label(entries_window, text=self.i18n.get("journal.emotional_journey"), 
-                font=("Arial", 16, "bold")).pack(pady=10)
+                font=("Arial", 16, "bold"), bg=self.colors["bg_primary"],
+                fg=self.colors["text_primary"]).pack(pady=10)
 
         def open_history_view():
-            from app.ui.daily_view import DailyHistoryView
-            top = tk.Toplevel(self.parent_root)
-            # Pass self.app if available, otherwise fallback to parent_root or self for colors
-            app_ref = self.app if self.app else self.parent_root
-            DailyHistoryView(top, app_ref, self.username)
-            entries_window.destroy()
+            """Open daily history view with lazy import"""
+            try:
+                # Lazy import to avoid circular dependency
+                from app.ui.daily_view import DailyHistoryView
+                top = tk.Toplevel(self.parent_root)
+                DailyHistoryView(top, self.app, self.username)
+                entries_window.destroy()
+            except ImportError as e:
+                logging.error(f"Failed to import DailyHistoryView: {e}")
+                messagebox.showerror("Error", "Calendar view feature not available")
 
         tk.Button(entries_window, text="📅 Calendar View", command=open_history_view,
-                 bg=self.app.colors.get("secondary", "#8B5CF6"), fg="white", relief="flat", padx=10).pack(pady=5)
+                 bg=self.colors.get("secondary", "#8B5CF6"), fg="white", 
+                 relief="flat", padx=10).pack(pady=5)
         
         # Create scrollable text area
         text_area = scrolledtext.ScrolledText(entries_window, width=80, height=25, 
-                                            font=("Arial", 10))
+                                            font=("Arial", 10),
+                                            bg=self.colors["surface"],
+                                            fg=self.colors["text_primary"])
         text_area.pack(pady=10, padx=20, fill=tk.BOTH, expand=True)
         
         # Fetch entries from database with ORM
@@ -368,7 +406,7 @@ class JournalFeature:
                                                            score=f"{entry.sentiment_score:.1f}", 
                                                            patterns=entry.emotional_patterns) + "\n")
                     
-                    # Display metrics if available (Backward compatibility)
+                    # Display metrics if available
                     if getattr(entry, 'sleep_hours', None) is not None:
                          metrics_str = self.i18n.get("journal.entry_metrics",
                                                      sleep_h=entry.sleep_hours,
@@ -389,42 +427,34 @@ class JournalFeature:
                  font=("Arial", 12)).pack(pady=10)
     
     def open_dashboard(self):
-        """Open analytics dashboard"""
+        """Open analytics dashboard with lazy import"""
         try:
+            # Lazy import to avoid circular dependency
             from app.ui.dashboard import AnalyticsDashboard
-            colors = getattr(self.app, 'colors', None)
+            colors = getattr(self.app, 'colors', self.colors)
             theme = self.app.settings.get("theme", "light") if self.app else "light"
             dashboard = AnalyticsDashboard(self.journal_window, self.username, colors=colors, theme=theme)
             dashboard.open_dashboard()
-        except ImportError:
+        except ImportError as e:
+            logging.error(f"Failed to import AnalyticsDashboard: {e}")
             messagebox.showerror("Error", "Dashboard feature not available")
 
-    # ========== HEALTH INSIGHTS & NUDGES (PR 1.6) ==========
+    # ========== HEALTH INSIGHTS & NUDGES ==========
     def generate_health_insights(self):
         """Check for recent trends and return comprehensive health insights"""
-        conn = get_session().get_bind().connect()
-        insight_text = "Tracking your vitals helps discover patterns! Keep logging daily." # Default
+        session = get_session()
         try:
             # Query last 3 days
             three_days_ago = (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")
             
-            query = """
-                SELECT sleep_hours, sleep_quality, energy_level, work_hours 
-                FROM journal_entries 
-                WHERE username = :username 
-                AND entry_date >= :date
-                ORDER BY entry_date DESC
-            """
-            result = conn.execute(text(query), # Handle raw SQL
-                                parameters={"username": self.username, "date": three_days_ago})
+            # Use SQLAlchemy query instead of raw SQL for better compatibility
+            entries = session.query(JournalEntry)\
+                .filter(JournalEntry.username == self.username)\
+                .filter(JournalEntry.entry_date >= three_days_ago)\
+                .order_by(JournalEntry.entry_date.desc())\
+                .all()
             
-            # SQLAlchemy 1.4/2.0+ compatibility for raw execution
-            if hasattr(result, 'mappings'):
-                rows = result.mappings().all()
-            else:
-                rows = result.fetchall()
-            
-            if not rows:
+            if not entries:
                 return "Start tracking your sleep and energy to get personalized health insights!"
             
             # Data extraction
@@ -433,18 +463,13 @@ class JournalFeature:
             energies = []
             works = []
             
-            for r in rows:
-                if hasattr(r, 'sleep_hours'): # Key access
-                    sleeps.append(r.sleep_hours)
-                    qualities.append(r.sleep_quality)
-                    energies.append(r.energy_level)
-                    works.append(r.work_hours)
-                else: # Tuple access
-                    sleeps.append(r[0])
-                    qualities.append(r[1])
-                    if len(r) > 2: energies.append(r[2])
-                    if len(r) > 3: works.append(r[3])
+            for entry in entries:
+                sleeps.append(entry.sleep_hours)
+                qualities.append(entry.sleep_quality)
+                energies.append(entry.energy_level)
+                works.append(entry.work_hours)
             
+            # Filter out None values
             sleeps = [s for s in sleeps if s is not None]
             qualities = [q for q in qualities if q is not None]
             energies = [e for e in energies if e is not None]
@@ -498,6 +523,14 @@ class JournalFeature:
             logging.error(f"Insight generation failed: {e}")
             insight_text = "Could not generate insights at this moment."
         finally:
-            conn.close()
+            session.close()
             
         return insight_text
+
+
+# Standalone test function
+if __name__ == "__main__":
+    root = tk.Tk()
+    journal = JournalFeature(root)
+    journal.open_journal_window("test_user")
+    root.mainloop()
