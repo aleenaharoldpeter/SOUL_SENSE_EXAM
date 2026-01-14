@@ -107,35 +107,31 @@ class AnalyticsDashboard:
         
         return scrollable_frame
 
-    def open_dashboard(self):
-        """Open analytics dashboard with theme support"""
+    def render_dashboard(self):
+        """Render dashboard embedded in parent_root"""
         colors = self.colors
         
-        dashboard = tk.Toplevel(self.parent_root)
-        dashboard.title(self.i18n.get("dashboard.title"))
-        dashboard.geometry("950x750")
-        dashboard.configure(bg=colors.get("bg", "#0F172A"))
+        # Use parent_root directly as the container (Embedded Mode)
+        dashboard = self.parent_root
         
-        # Header
-        header = tk.Frame(dashboard, bg=colors.get("primary", "#3B82F6"))
-        header.pack(fill="x")
+        # Header (Hero Style for Web feel)
+        header_frame = tk.Frame(dashboard, bg=colors["bg"], pady=20)
+        header_frame.pack(fill="x", padx=20)
         
-        tk.Label(
-            header,
-            text=f"📊 {self.i18n.get('dashboard.analytics')}", 
-            font=("Segoe UI", 18, "bold"),
-            bg=colors.get("primary", "#3B82F6"),
-            fg="white"
-        ).pack(pady=15)
-        
+        tk.Label(header_frame, text=f"📊 {self.i18n.get('dashboard.analytics')}", 
+                font=("Segoe UI", 24, "bold"), bg=colors["bg"], 
+                fg=colors["text_primary"]).pack(side="left")
+
         # Configure ttk style for dark/light theme
         style = ttk.Style()
         if self.theme == "dark":
             style.configure("TNotebook", background=colors.get("bg", "#0F172A"))
             style.configure("TFrame", background=colors.get("bg", "#0F172A"))
+            style.map("TNotebook.Tab", background=[("selected", colors.get("surface", "#1E293B"))], 
+                      foreground=[("selected", colors.get("text_primary", "#fff"))])
         
         notebook = ttk.Notebook(dashboard)
-        notebook.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
+        notebook.pack(fill=tk.BOTH, expand=True, padx=20, pady=(10, 20))
         
         # Correlation Analysis Tab
         correlation_frame = ttk.Frame(notebook)
