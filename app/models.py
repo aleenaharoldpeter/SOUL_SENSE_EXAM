@@ -1,9 +1,15 @@
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, Boolean, Index, func, event, text
-from sqlalchemy.orm import declarative_base, relationship
+# app/models.py
+"""
+Compatibility layer for tests and legacy imports.
+Core models have been refactored elsewhere.
+"""
+
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Float, Text, create_engine, event, Index, text
+from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime, timedelta
 import logging
 
-# Create Base
+# Define Base
 Base = declarative_base()
 
 class UserProfile:
@@ -465,3 +471,4 @@ def get_user_scores_optimized(session, username, limit=50):
 
 # Initialize logger
 logging.basicConfig(level=logging.INFO)
+# End of models
