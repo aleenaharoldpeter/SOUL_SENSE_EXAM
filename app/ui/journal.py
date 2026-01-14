@@ -96,6 +96,11 @@ class JournalFeature:
         metrics_frame.columnconfigure(1, weight=1)
         metrics_frame.columnconfigure(3, weight=1)
         
+        # Configure Theme for Sliders
+        style = ttk.Style()
+        style.configure("TScale", background=colors["surface"], troughcolor=colors.get("border", "#ccc"),
+                        sliderthickness=15)
+
         def create_slider(parent, label_text, from_, to_, row, col, variable, resolution=1):
             lbl = tk.Label(parent, text=label_text, font=("Segoe UI", 11), 
                     bg=colors["surface"], fg=colors["text_primary"])
@@ -111,6 +116,7 @@ class JournalFeature:
                 variable.set(v)
                 val_lbl.config(text=f"{v:g}")
 
+            # Use "TScale" style implicitly or explicitly if needed, but configure sets global default for TScale
             s = ttk.Scale(parent, from_=from_, to=to_, orient="horizontal", variable=variable, command=on_scroll)
             s.grid(row=row, column=col+1, sticky="ew", padx=5)
 
@@ -127,6 +133,35 @@ class JournalFeature:
         
         self.work_hours_var = tk.DoubleVar(value=8.0)
         create_slider(metrics_frame, "Work (hrs)", 0, 16, 1, 3, self.work_hours_var, 0.5)
+
+        # Row 2 (PR #6 Expansion)
+        self.stress_level_var = tk.IntVar(value=3)
+        create_slider(metrics_frame, "Stress (1-10)", 1, 10, 2, 0, self.stress_level_var, 1)
+
+        # Screen Time (Slider)
+        self.screen_time_var = tk.IntVar(value=120)
+        create_slider(metrics_frame, "Screen Time (mins)", 0, 720, 2, 3, self.screen_time_var, 15)
+
+        # --- Daily Context Section (PR #6) ---
+        context_frame = tk.LabelFrame(container, text="Daily Context", 
+                                     font=("Segoe UI", 12, "bold"), bg=colors["surface"],
+                                     fg=colors["text_primary"], padx=15, pady=10)
+        context_frame.pack(fill="x", pady=5)
+        
+        def create_compact_text(parent, label, ht=3):
+            frame = tk.Frame(parent, bg=colors["surface"])
+            frame.pack(fill="x", pady=5)
+            tk.Label(frame, text=label, font=("Segoe UI", 10, "bold"), 
+                    bg=colors["surface"], fg=colors["text_secondary"]).pack(anchor="w")
+            txt = tk.Text(frame, height=ht, font=("Segoe UI", 10),
+                         bg=colors.get("input_bg", "#fff"), fg=colors.get("input_fg", "#000"),
+                         relief="flat", highlightthickness=1,
+                         highlightbackground=colors.get("border", "#ccc"))
+            txt.pack(fill="x")
+            return txt
+
+        self.schedule_text = create_compact_text(context_frame, "Daily Schedule / Key Events")
+        self.triggers_text = create_compact_text(context_frame, "Stress Triggers (if any)")
 
         # --- Reflection Section ---
         tk.Label(container, text="Your thoughts today...", 
@@ -250,7 +285,12 @@ class JournalFeature:
                 sleep_hours=self.sleep_hours_var.get(),
                 sleep_quality=self.sleep_quality_var.get(),
                 energy_level=self.energy_level_var.get(),
-                work_hours=self.work_hours_var.get()
+                work_hours=self.work_hours_var.get(),
+                # PR #6 Expansion
+                screen_time_mins=self.screen_time_var.get(),
+                stress_level=self.stress_level_var.get(),
+                daily_schedule=self.schedule_text.get("1.0", tk.END).strip(),
+                stress_triggers=self.triggers_text.get("1.0", tk.END).strip()
             )
             session.add(entry)
             session.commit()
@@ -262,7 +302,10 @@ class JournalFeature:
             self.show_analysis_results(sentiment_score, emotional_patterns, health_insights)
             
             # Clear text area
+            # Clear inputs
             self.text_area.delete("1.0", tk.END)
+            self.schedule_text.delete("1.0", tk.END)
+            self.triggers_text.delete("1.0", tk.END)
             
         except Exception as e:
             logging.error("Failed to save journal entry", exc_info=True)
@@ -406,6 +449,14 @@ class JournalFeature:
                                                      energy=entry.energy_level,
                                                      work=entry.work_hours)
                          text_area.insert(tk.END, metrics_str + "\n")
+                         
+                         # PR #6 Display
+                         if getattr(entry, 'stress_level', None):
+                             text_area.insert(tk.END, f"Metrics: Stress {entry.stress_level}/10 | Screen Time: {entry.screen_time_mins}m\n")
+                         if getattr(entry, 'stress_triggers', None):
+                             text_area.insert(tk.END, f"Triggers: {entry.stress_triggers}\n")
+                         if getattr(entry, 'daily_schedule', None):
+                             text_area.insert(tk.END, f"Schedule: {entry.daily_schedule}\n")
 
                     text_area.insert(tk.END, self.i18n.get("journal.entry_content", content=entry.content) + "\n")
                     text_area.insert(tk.END, "-" * 70 + "\n\n")
