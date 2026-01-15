@@ -123,6 +123,7 @@ class ColorSchemes:
         "input_bg": "#F8FAFC",
         "input_fg": "#0F172A", 
         "input_border": "#E2E8F0",
+        "accent": "#F59E0B", # Added for analytics card missing
         
         "card_bg": "#FFFFFF",
         "card_border": "#E2E8F0",
@@ -204,6 +205,7 @@ class ColorSchemes:
         "input_bg": "#0F172A",
         "input_fg": "#F8FAFC", 
         "input_border": "#334155",
+        "accent": "#F59E0B", # Added for analytics card
         
         "card_bg": "#1E293B",
         "card_border": "#334155",
