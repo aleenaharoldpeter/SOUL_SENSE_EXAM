@@ -201,6 +201,9 @@ class SoulSenseCLI:
 
     def run_exam_loop(self) -> None:
         """Main Exam Loop"""
+        if not self.session:
+            return
+
         while not self.session.is_finished():
             self.clear_screen()
             
@@ -251,6 +254,9 @@ class SoulSenseCLI:
 
     def run_reflection(self) -> None:
         """Reflection Phase"""
+        if not self.session:
+            return
+
         self.clear_screen()
         print("="*60)
         print("      F I N A L   R E F L E C T I O N")
@@ -314,6 +320,9 @@ class SoulSenseCLI:
 
     def show_results(self) -> None:
         """Display Enhanced Final Results"""
+        if not self.session:
+            return
+
         success = self.session.finish_exam()
         if not success:
             print("Error saving results.")
@@ -749,7 +758,7 @@ class SoulSenseCLI:
                 print("No data yet.")
             else:
                 # Analyze by hour
-                hour_scores = {}
+                hour_scores: Dict[int, List[float]] = {}
                 for row in rows:
                     try:
                         ts = datetime.fromisoformat(row[0])

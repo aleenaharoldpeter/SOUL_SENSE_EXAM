@@ -181,7 +181,13 @@ def _try_database_cache(session: Session, age: Optional[int] = None) -> Optional
             
             # Match the 5-tuple signature: (id, text, tooltip, min_age, max_age)
             # QuestionCache model has these fields.
-            result = [
+            # Use 'cast' to handle SQLAlchemy Column vs python type confusion if specific mypy plugin is missing
+            from typing import cast
+            
+            # Explicitly checking for None or asserting might help, but let's assume valid data for now
+            # The query returns Row objects which act like tuples.
+            # We construct a list of explicit python tuples to match the return type.
+            result: List[Tuple[int, str, Optional[str], int, int]] = [
                 (c.question_id, c.question_text, c.tooltip, c.min_age, c.max_age) 
                 for c in cached
             ]
@@ -225,7 +231,7 @@ def _warmup_cache():
 def load_questions(
     age: Optional[int] = None,
     db_path: Optional[str] = None
-) -> List[Tuple[int, str, Optional[str]]]:
+) -> List[Tuple[int, str, Optional[str], int, int]]:
     """
     Load questions from DB using ORM with multi-level caching.
     Returns list of (id, question_text, tooltip) tuples.
