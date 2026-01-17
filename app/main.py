@@ -2,6 +2,8 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 import logging
+import sys
+
 from app.ui.sidebar import SidebarNav
 from app.ui.styles import UIStyles
 from app.ui.dashboard import AnalyticsDashboard
@@ -10,11 +12,16 @@ from app.ui.profile import UserProfileView
 from app.ui.exam import ExamManager
 from app.auth import AuthManager
 from app.i18n_manager import get_i18n
-from app.i18n_manager import get_i18n
 from app.questions import load_questions
 from app.ui.assessments import AssessmentHub
 from app.startup_checks import run_all_checks, get_check_summary, CheckStatus
 from app.exceptions import IntegrityError
+from app.logger import get_logger, setup_logging
+from app.error_handler import (
+    get_error_handler,
+    setup_global_exception_handlers,
+    ErrorSeverity,
+)
 from typing import Optional, Dict, Any, List
 
 class SoulSenseApp:
@@ -23,8 +30,8 @@ class SoulSenseApp:
         self.root.title("SoulSense AI - Mental Wellbeing")
         self.root.geometry("1400x900")
         
-        # Initialize Logger
-        self.logger = logging.getLogger(__name__)
+        # Initialize Logger (use centralized logger)
+        self.logger = get_logger(__name__)
         
         # Initialize Styles
         self.ui_styles = UIStyles(self)
@@ -441,6 +448,10 @@ def global_exception_handler(self, exc_type, exc_value, traceback_obj):
 
 
 if __name__ == "__main__":
+    # Setup centralized logging and error handling
+    setup_logging()
+    setup_global_exception_handlers()
+    
     try:
         # Run startup integrity checks before initializing the app
         logging.basicConfig(level=logging.INFO)
@@ -477,6 +488,22 @@ if __name__ == "__main__":
         
         # All checks passed, start the application
         root = tk.Tk()
+        
+        # Register tkinter-specific exception handler
+        def tk_report_callback_exception(exc_type, exc_value, exc_tb):
+            """Handle exceptions in tkinter callbacks."""
+            handler = get_error_handler()
+            handler.log_error(
+                exc_value,
+                module="tkinter",
+                operation="callback",
+                severity=ErrorSeverity.HIGH
+            )
+            user_msg = handler.get_user_message(exc_value)
+            show_error("Interface Error", user_msg, exc_value)
+        
+        root.report_callback_exception = tk_report_callback_exception
+        
         app = SoulSenseApp(root)
         root.mainloop()
         
@@ -484,4 +511,7 @@ if __name__ == "__main__":
         pass  # Clean exit from integrity failure
     except Exception as e:
         import traceback
+        handler = get_error_handler()
+        handler.log_error(e, module="main", operation="startup", severity=ErrorSeverity.CRITICAL)
         traceback.print_exc()
+
