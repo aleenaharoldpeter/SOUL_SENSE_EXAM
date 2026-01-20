@@ -337,12 +337,12 @@ class JournalFeature:
             # 2. Database Save
             with safe_db_context() as session:
                 entry = JournalEntry(
-                    user_id=self.app.user_id if hasattr(self.app, 'user_id') else 1, # Fallback
+                    username=self.username if hasattr(self, 'username') else (self.app.username if self.app and hasattr(self.app, 'username') else 'guest'),
                     content=content,
                     sentiment_score=sentiment_score,
                     mood=self._app_mood_from_score(sentiment_score),
                     created_at=current_time,
-                    tags=emotional_patterns
+                    emotional_patterns=emotional_patterns
                 )
                 session.add(entry)
                 # Commit handled by context manager
