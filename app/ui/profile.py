@@ -4,6 +4,8 @@ from tkinter import ttk, messagebox, simpledialog
 import logging
 import json
 from datetime import datetime
+from app.db import get_session
+from app.models import User
 from app.services.profile_service import ProfileService
 # from app.ui.styles import ApplyTheme # Not needed
 from app.ui.sidebar import SidebarNav
@@ -683,6 +685,14 @@ class UserProfileView:
             font=self.styles.get_font("sm"), bg=self.colors.get("card_bg"), fg="gray"
         ).pack(pady=(15, 10))
         
+        # Load Image
+        try:
+            original_img = Image.open(image_path)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to open image: {e}", parent=dialog)
+            dialog.destroy()
+            return
+
         # Calculate display size (max 400px)
         display_size = 400
         scale = min(display_size / original_img.width, display_size / original_img.height)

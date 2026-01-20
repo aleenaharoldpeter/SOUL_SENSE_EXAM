@@ -12,7 +12,7 @@ from sqlalchemy import desc, text
 
 from app.i18n_manager import get_i18n
 from app.i18n_manager import get_i18n
-from app.models import JournalEntry
+from app.models import JournalEntry, User
 from app.db import get_session
 from app.services.journal_service import JournalService
 from app.validation import validate_required, validate_length, validate_range, sanitize_text, RANGES
@@ -1282,6 +1282,7 @@ class JournalFeature:
                 user_emotions = []
                 preferred_support = None
                 try:
+                    session = get_session()
                     user = session.query(User).filter_by(username=self.username).first()
                     if user and user.emotional_patterns:
                         ep = user.emotional_patterns
