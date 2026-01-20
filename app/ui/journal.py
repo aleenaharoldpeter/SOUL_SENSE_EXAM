@@ -316,11 +316,16 @@ class JournalFeature:
         # Start Processing
         self.is_processing = True
         
-        # Disable button if available
         if hasattr(self, 'save_btn'):
             self.save_btn.configure(state="disabled")
             
-        overlay = show_loading(self.parent_root, "Analyzing Emotions...")
+        overlay = None
+        try:
+            overlay = show_loading(self.parent_root, "Analyzing Emotions...")
+        except Exception as e:
+            # If creating overlay fails (e.g. parent destroyed), minimal fallback
+            logging.error(f"Could not create loading overlay: {e}")
+            # continue processing anyway
 
         try:
             current_time = datetime.now()
