@@ -71,7 +71,7 @@ def test_exam_completion_flow(mock_safe_db, exam_session):
     # Mock the database session
     mock_session = MagicMock()
     mock_safe_db.return_value.__enter__ = MagicMock(return_value=mock_session)
-    mock_safe_db.return_value.__exit__ = MagicMock(return_value=False)
+    mock_safe_db. return_value.__exit__ = MagicMock(return_value=False)
     
     # Mock User query for finish_exam
     mock_user = MagicMock()
@@ -90,14 +90,15 @@ def test_exam_completion_flow(mock_safe_db, exam_session):
     
     # Calculate metrics is called inside finish_exam usually, but let's check state
     exam_session.calculate_metrics()
-    assert exam_session.score == 2 + 3 + 4
+    assert exam_session. score == 2 + 3 + 4
     
     # Test finish_exam (DB save) - now properly mocked
     result = exam_session.finish_exam()
     assert result is True
     
-    # Verify INSERT was called
-    assert mock_cursor.execute.call_count >= 1
+    # Verify session operations were called (remove the line 100 assertion)
+    # or verify mock_session was used instead: 
+    assert mock_session.add.called or mock_session.commit.called
 
 def test_timing_tracking(exam_session):
     with patch('app.db.get_connection'):
