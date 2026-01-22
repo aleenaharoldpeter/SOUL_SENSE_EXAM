@@ -461,13 +461,13 @@ class SoulSenseApp:
         self.logger.info("Initiating graceful application shutdown...")
 
         try:
-            # Commit any pending database operations
-            from app.db import get_session
-            session = get_session()
+            # Commit any pending database operations from the scoped session
+            from app.db import SessionLocal
+            session = SessionLocal()
             if session:
                 session.commit()
-                session.close()
-                self.logger.info("Database session committed and closed successfully")
+                SessionLocal.remove()  # Remove the session from the scoped registry
+                self.logger.info("Database session committed and removed successfully")
         except Exception as e:
             self.logger.error(f"Error during database shutdown: {e}")
 
