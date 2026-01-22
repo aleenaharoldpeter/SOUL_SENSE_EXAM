@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import get_settings
-from .routers import health, auth, assessments, questions
+from .routers import health, auth, analytics
 
 settings = get_settings()
 
@@ -9,7 +9,7 @@ settings = get_settings()
 def create_app() -> FastAPI:
     app = FastAPI(
         title="SoulSense API",
-        description="REST API for Soul Sense EQ Test - Assessments and Questions",
+        description="REST API for Soul Sense EQ Test - Assessments, Questions, and Analytics",
         version="1.0.0"
     )
 
@@ -25,8 +25,11 @@ def create_app() -> FastAPI:
     # Register routers
     app.include_router(health.router, tags=["health"])
     app.include_router(auth.router, prefix="/auth", tags=["authentication"])
-    app.include_router(assessments.router, prefix="/api/v1/assessments", tags=["assessments"])
-    app.include_router(questions.router, prefix="/api/v1/questions", tags=["questions"])
+    app.include_router(
+        analytics.router, 
+        prefix="/api/v1/analytics", 
+        tags=["analytics"]
+    )
 
     @app.on_event("startup")
     async def startup_event():
