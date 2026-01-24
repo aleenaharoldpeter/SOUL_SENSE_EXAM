@@ -5,8 +5,20 @@ import json
 from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
 
 
+class ServiceStatus(BaseModel):
+    """Status of an individual service."""
+    status: str = Field(description="healthy, degraded, or unhealthy")
+    latency_ms: Optional[float] = Field(None, description="Response time in milliseconds")
+    message: Optional[str] = Field(None, description="Optional status message")
+
+
 class HealthResponse(BaseModel):
-    status: str
+    """Response schema for health and readiness endpoints."""
+    status: str = Field(description="healthy or unhealthy")
+    timestamp: str = Field(description="ISO 8601 timestamp")
+    version: str = Field(description="Application version")
+    services: Optional[Dict[str, ServiceStatus]] = Field(None, description="Status of dependent services")
+    details: Optional[Dict[str, Any]] = Field(None, description="Additional diagnostics (when ?full=true)")
 
 
 # ============================================================================

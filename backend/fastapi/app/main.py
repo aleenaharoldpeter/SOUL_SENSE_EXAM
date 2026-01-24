@@ -4,6 +4,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from .config import get_settings
 from .api.v1.router import api_router as api_v1_router
+from .routers.health import router as health_router
 
 settings = get_settings()
 
@@ -38,6 +39,9 @@ def create_app() -> FastAPI:
     
     # Register V1 API Router
     app.include_router(api_v1_router, prefix="/api/v1")
+    
+    # Register Health endpoints at root level for orchestration
+    app.include_router(health_router, tags=["Health"])
 
     # Root endpoint - version discovery
     @app.get("/", tags=["Root"])
