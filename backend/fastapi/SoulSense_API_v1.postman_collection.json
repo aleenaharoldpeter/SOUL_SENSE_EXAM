@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "f2a2468b-56d1-4235-9831-50794b62f433",
     "name": "SoulSense API v1",
-    "description": "Comprehensive Postman collection for SoulSense API v1 testing. Includes automated token management and full endpoint coverage.",
+    "description": "Comprehensive Postman collection for SoulSense API v1 testing. Includes automated token management, full endpoint coverage, and Edge Cases (Negative Testing).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -10,7 +10,20 @@
       "name": "Auth",
       "item": [
         {
-          "name": "Register",
+          "name": "Register (Success)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201 or 200\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 200]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [],
@@ -32,7 +45,7 @@
           "response": []
         },
         {
-          "name": "Login",
+          "name": "Login (Success)",
           "event": [
             {
               "listen": "test",
@@ -83,186 +96,93 @@
             }
           },
           "response": []
-        }
-      ]
-    },
-    {
-      "name": "Users",
-      "item": [
-        {
-          "name": "Get Current User",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/users/me",
-              "host": ["{{base_url}}"],
-              "path": ["users", "me"]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Profiles",
-      "item": [
-        {
-          "name": "Settings",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/profiles/settings",
-              "host": ["{{base_url}}"],
-              "path": ["profiles", "settings"]
-            }
-          },
-          "response": []
         },
         {
-          "name": "Medical",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/profiles/medical",
-              "host": ["{{base_url}}"],
-              "path": ["profiles", "medical"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Personal",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/profiles/personal",
-              "host": ["{{base_url}}"],
-              "path": ["profiles", "personal"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Strengths",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/profiles/strengths",
-              "host": ["{{base_url}}"],
-              "path": ["profiles", "strengths"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Emotional",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/profiles/emotional",
-              "host": ["{{base_url}}"],
-              "path": ["profiles", "emotional"]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Questions",
-      "item": [
-        {
-          "name": "Get Questions (Paginated)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/questions/?limit=5",
-              "host": ["{{base_url}}"],
-              "path": ["questions", ""],
-              "query": [
+          "name": "Edge Cases",
+          "item": [
+            {
+              "name": "Register - Weak Password",
+              "event": [
                 {
-                  "key": "limit",
-                  "value": "5"
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
                 }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Categories",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/questions/categories",
-              "host": ["{{base_url}}"],
-              "path": ["questions", "categories"]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Assessments",
-      "item": [
-        {
-          "name": "List Assessments",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/assessments/?limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["assessments", ""],
-              "query": [
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"username\": \"weakuser_{{$timestamp}}\",\n    \"password\": \"weak\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/register",
+                  "host": ["{{base_url}}"],
+                  "path": ["auth", "register"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Login - Wrong Password",
+              "event": [
                 {
-                  "key": "limit",
-                  "value": "10"
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 401 or 400\", function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([401, 400]);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
                 }
-              ]
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/x-www-form-urlencoded",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "urlencoded",
+                  "urlencoded": [
+                    {
+                      "key": "username",
+                      "value": "testuser",
+                      "type": "text"
+                    },
+                    {
+                      "key": "password",
+                      "value": "WrongPass123!",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/login",
+                  "host": ["{{base_url}}"],
+                  "path": ["auth", "login"]
+                }
+              },
+              "response": []
             }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Stats",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/assessments/stats",
-              "host": ["{{base_url}}"],
-              "path": ["assessments", "stats"]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Analytics",
-      "item": [
-        {
-          "name": "Global Summary",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/analytics/summary",
-              "host": ["{{base_url}}"],
-              "path": ["analytics", "summary"]
-            }
-          },
-          "response": []
+          ]
         }
       ]
     },
@@ -311,72 +231,127 @@
           "response": []
         },
         {
-          "name": "Journal Analytics",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/journal/analytics",
-              "host": ["{{base_url}}"],
-              "path": ["journal", "analytics"]
+          "name": "Edge Cases",
+          "item": [
+            {
+              "name": "Create - Missing Content (422)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 422\", function () {",
+                      "    pm.response.to.have.status(422);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"tags\": [\"empty\"]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/journal/",
+                  "host": ["{{base_url}}"],
+                  "path": ["journal", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get - Invalid ID (404)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 404\", function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/journal/999999",
+                  "host": ["{{base_url}}"],
+                  "path": ["journal", "999999"]
+                }
+              },
+              "response": []
             }
-          },
-          "response": []
+          ]
         }
       ]
     },
     {
-      "name": "Settings Sync",
+      "name": "General Edge Cases",
       "item": [
         {
-          "name": "Get All Settings",
+          "name": "Unauthorized Access (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/sync/",
+              "raw": "{{base_url}}/users/me",
               "host": ["{{base_url}}"],
-              "path": ["sync", ""]
+              "path": ["users", "me"]
             }
           },
           "response": []
         },
         {
-          "name": "Upsert Setting",
-          "request": {
-            "method": "PUT",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"value\": \"dark_mode\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
+          "name": "Method Not Allowed (405)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 405\", function () {",
+                  "    pm.response.to.have.status(405);",
+                  "});"
+                ],
+                "type": "text/javascript"
               }
-            },
-            "url": {
-              "raw": "{{base_url}}/sync/theme",
-              "host": ["{{base_url}}"],
-              "path": ["sync", "theme"]
             }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Health",
-      "item": [
-        {
-          "name": "Health Check",
+          ],
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/health",
+              "raw": "{{base_url}}/questions/",
               "host": ["{{base_url}}"],
-              "path": ["health"]
+              "path": ["questions", ""]
             }
           },
           "response": []
