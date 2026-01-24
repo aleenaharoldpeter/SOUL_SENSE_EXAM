@@ -8,7 +8,7 @@ Run the FastAPI server first: uvicorn app.main:app --reload
 import requests
 import json
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://127.0.0.1:8000"
 
 
 def print_response(response, description):

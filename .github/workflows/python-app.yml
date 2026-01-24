@@ -50,15 +50,24 @@ jobs:
       - name: Test Backend App
         run: |
           mkdir -p ../../data
-          nohup python start_server.py --no-reload > server.log 2>&1 &
+          nohup python start_server.py --host 127.0.0.1 --port 8000 --no-reload --y > server.log 2>&1 &
           # Wait for server to be ready
+          ready=false
           for i in {1..30}; do
-            if curl -s http://localhost:8000/api/v1/health > /dev/null; then
+            if curl -s http://127.0.0.1:8000/api/v1/health > /dev/null; then
               echo "Server is ready!"
+              ready=true
               break
             fi
-            echo "Waiting for server... ($i)"
+            echo "Waiting for server... ($i/30)"
             sleep 1
           done
+
+          if [ "$ready" = false ]; then
+            echo "❌ Server failed to start. Logs:"
+            cat server.log
+            exit 1
+          fi
+
           pytest tests/unit/
         working-directory: ./backend/fastapi
