@@ -123,7 +123,7 @@ User Input → GUI Events → Business Logic → Data Validation → Database �
 
 ### One-Command Setup
 ```bash
-git clone https://github.com/Rohanrathod7/soul-sense-Exam.git
+git clone https://github.com/nupurmadaan04/SOUL_SENSE_EXAM
 cd soul-sense-Exam/SOUL_SENSE_EXAM
 python -m scripts.setup_dev
 python -m app.main
@@ -137,7 +137,7 @@ That's it! The application will initialize the database, seed questions, and lau
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/Rohanrathod7/soul-sense-Exam.git
+git clone https://github.com/nupurmadaan04/SOUL_SENSE_EXAM
 cd soul-sense-Exam/SOUL_SENSE_EXAM
 ```
 
@@ -431,3 +431,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Built with ❤️ for emotional intelligence and personal growth**
+
