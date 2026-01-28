@@ -204,20 +204,27 @@ class SoulSenseApp:
         else:
             self.switch_view("home")
 
+    def center_window(self, window, width, height):
+        """Center a window on the screen"""
+        window.update_idletasks()
+        x = (window.winfo_screenwidth() // 2) - (width // 2)
+        y = (window.winfo_screenheight() // 2) - (height // 2)
+        window.geometry(f'{width}x{height}+{x}+{y}')
+
     def apply_theme(self, theme_name: str) -> None:
         """Update colors based on theme"""
         # Delegate to UIStyles manager
         self.ui_styles.apply_theme(theme_name)
-        
+
         # Refresh current view
         # A full restart might be best, but we'll try to update existing frames
         self.main_container.configure(bg=self.colors["bg"])
         self.content_area.configure(bg=self.colors["bg"])
-        
+
         # Update Sidebar
         if hasattr(self, 'sidebar'):
             self.sidebar.update_theme()
-            
+
         # Refresh current content (re-render)
         # This is strictly necessary to apply new colors to inner widgets
         # We can implement a specific update hook or just switch view (reloads it)
