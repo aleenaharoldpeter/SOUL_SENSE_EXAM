@@ -6,8 +6,17 @@ from tkinter import ttk, messagebox, scrolledtext
 from datetime import datetime, timedelta
 import logging
 
-import nltk
-from nltk.sentiment import SentimentIntensityAnalyzer
+# Conditional import for NLTK - sentiment analysis is optional
+try:
+    import nltk
+    from nltk.sentiment import SentimentIntensityAnalyzer
+    NLTK_AVAILABLE = True
+except ImportError:
+    logging.warning("NLTK not available - sentiment analysis will be disabled")
+    nltk = None
+    SentimentIntensityAnalyzer = None
+    NLTK_AVAILABLE = False
+
 from sqlalchemy import desc, text
 
 from app.i18n_manager import get_i18n
@@ -71,10 +80,20 @@ class JournalFeature:
         
     def _initialize_sentiment_analyzer(self) -> None:
         """Initialize the VADER sentiment analyzer"""
+        if not NLTK_AVAILABLE:
+            logging.warning("NLTK not available - sentiment analysis disabled")
+            self.sia = None
+            return
+            
         try:
             nltk.data.find('sentiment/vader_lexicon.zip')
         except LookupError:
-            nltk.download('vader_lexicon', quiet=True)
+            try:
+                nltk.download('vader_lexicon', quiet=True)
+            except Exception as download_error:
+                logging.error(f"Failed to download VADER lexicon: {download_error}")
+                self.sia = None
+                return
             
         try:
             self.sia = SentimentIntensityAnalyzer()
@@ -108,7 +127,7 @@ class JournalFeature:
         container.pack(fill="both", expand=True, padx=20)
         
         # --- Metrics Section ---
-        metrics_frame = tk.LabelFrame(container, text="Daily Assessment", 
+        metrics_frame = tk.LabelFrame(container, text=self.i18n.get("journal.daily_assessment", "Daily Assessment"), 
                                      font=("Segoe UI", 12, "bold"), bg=colors["surface"],
                                      fg=colors["text_primary"], padx=15, pady=15)
         metrics_frame.pack(fill="x", pady=10)
@@ -152,18 +171,18 @@ class JournalFeature:
         create_slider(metrics_frame, "Energy (1-10)", 1, 10, 1, 0, self.energy_level_var, 1)
         
         self.work_hours_var = tk.DoubleVar(value=8.0)
-        create_slider(metrics_frame, "Work (hrs)", 0, 16, 1, 3, self.work_hours_var, 0.5)
+        create_slider(metrics_frame, self.i18n.get("journal.work_hours", "Work (hrs)"), 0, 16, 1, 3, self.work_hours_var, 0.5)
 
         # Row 2 (PR #6 Expansion)
         self.stress_level_var = tk.IntVar(value=3)
-        create_slider(metrics_frame, "Stress (1-10)", 1, 10, 2, 0, self.stress_level_var, 1)
+        create_slider(metrics_frame, self.i18n.get("journal.stress", "Stress (1-10)"), 1, 10, 2, 0, self.stress_level_var, 1)
 
         # Screen Time (Slider)
         self.screen_time_var = tk.IntVar(value=120)
-        create_slider(metrics_frame, "Screen Time (mins)", 0, 720, 2, 3, self.screen_time_var, 15)
+        create_slider(metrics_frame, self.i18n.get("journal.screen_time", "Screen Time (mins)"), 0, 720, 2, 3, self.screen_time_var, 15)
 
         # --- Daily Context Section (PR #6) ---
-        context_frame = tk.LabelFrame(container, text="Daily Context", 
+        context_frame = tk.LabelFrame(container, text=self.i18n.get("journal.daily_context", "Daily Context"), 
                                      font=("Segoe UI", 12, "bold"), bg=colors["surface"],
                                      fg=colors["text_primary"], padx=15, pady=10)
         context_frame.pack(fill="x", pady=5)
@@ -180,18 +199,18 @@ class JournalFeature:
             txt.pack(fill="x")
             return txt
 
-        self.schedule_text = create_compact_text(context_frame, "Daily Schedule / Key Events")
-        self.triggers_text = create_compact_text(context_frame, "Stress Triggers (if any)")
+        self.schedule_text = create_compact_text(context_frame, self.i18n.get("journal.daily_schedule", "Daily Schedule / Key Events"))
+        self.triggers_text = create_compact_text(context_frame, self.i18n.get("journal.stress_triggers", "Stress Triggers (if any)"))
 
         # --- Reflection Section ---
-        tk.Label(container, text="Your thoughts today...",
+        tk.Label(container, text=self.i18n.get("journal.thoughts_prompt", "Your thoughts today..."),
                 font=("Segoe UI", 12, "bold"), bg=colors["bg"],
                 fg=colors["text_primary"]).pack(anchor="w", pady=(15, 5))
 
         # Tags input field
         tags_frame = tk.Frame(container, bg=colors["bg"])
         tags_frame.pack(fill="x", pady=(0, 10))
-        tk.Label(tags_frame, text="Tags (comma-separated, e.g., stress, gratitude, relationships):",
+        tk.Label(tags_frame, text=self.i18n.get("journal.tags_prompt", "Tags (comma-separated, e.g., stress, gratitude, relationships):"),
                 font=("Segoe UI", 10), bg=colors["bg"],
                 fg=colors["text_secondary"]).pack(anchor="w")
         self.tags_entry = tk.Entry(tags_frame, font=("Segoe UI", 10),
@@ -434,33 +453,36 @@ class JournalFeature:
         self.render_journal_view(self.journal_window, username)
     
     def analyze_sentiment(self, text):
-        """Analyze sentiment using NLTK VADER"""
+        """Analyze sentiment using NLTK VADER or fallback keyword matching"""
         if not text.strip():
             return 0.0
             
-        if self.sia:
+        if self.sia and NLTK_AVAILABLE:
             try:
                 scores = self.sia.polarity_scores(text)
                 # Convert compound (-1 to 1) to -100 to 100
                 return scores['compound'] * 100
             except Exception as e:
-                logging.error(f"Sentiment analysis error: {e}")
-                return 0.0
+                logging.error(f"VADER sentiment analysis error: {e}")
+                # Fall through to keyword matching
         else:
-            # Fallback to simple keyword matching if VADER fails
-            positive_words = ['happy', 'joy', 'excited', 'grateful', 'peaceful', 'confident']
-            negative_words = ['sad', 'angry', 'frustrated', 'anxious', 'worried', 'stressed']
-            
-            text_lower = text.lower()
-            positive_count = sum(1 for word in positive_words if word in text_lower)
-            negative_count = sum(1 for word in negative_words if word in text_lower)
-            
-            total_words = len(text.split())
-            if total_words == 0: 
-                return 0.0
-            
-            score = (positive_count - negative_count) / max(total_words, 1) * 100
-            return max(-100, min(100, score))
+            logging.debug("Using keyword-based sentiment analysis (NLTK not available)")
+        
+        # Fallback to simple keyword matching when VADER is unavailable
+        positive_words = ['happy', 'joy', 'excited', 'grateful', 'peaceful', 'confident', 'good', 'great', 'excellent']
+        negative_words = ['sad', 'angry', 'frustrated', 'anxious', 'worried', 'stressed', 'bad', 'terrible', 'awful']
+        
+        text_lower = text.lower()
+        positive_count = sum(1 for word in positive_words if word in text_lower)
+        negative_count = sum(1 for word in negative_words if word in text_lower)
+        
+        total_words = len(text.split())
+        if total_words == 0: 
+            return 0.0
+        
+        # Calculate sentiment as percentage of emotional words
+        score = (positive_count - negative_count) / max(total_words * 0.1, 1) * 100
+        return max(-100, min(100, score))
     
     def extract_emotional_patterns(self, text):
         """Extract emotional patterns from text"""
