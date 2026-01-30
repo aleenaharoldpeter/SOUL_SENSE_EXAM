@@ -399,9 +399,13 @@ class GitHubService:
                     if week_ts not in weeks_map:
                         weeks_map[week_ts] = {"total": 0, "week": week_ts, "days": [0]*7}
                     
-                    weeks_map[week_ts]["total"] += 1
+                    # Ensure type safety for Mypy
+                    current_week = weeks_map[week_ts]  # type: ignore
+                    current_week["total"] += 1
+                    
                     weekday = (dt.weekday() + 1) % 7 # Sunday = 0
-                    weeks_map[week_ts]["days"][weekday] += 1
+                    if "days" in current_week:
+                        current_week["days"][weekday] += 1
                 except Exception:
                     continue
             
@@ -818,20 +822,20 @@ class GitHubService:
                 }
 
             # 3. Build recursive tree (Hierarchy)
-            root = {"name": "Repository", "children": {}}
+            root: Dict[str, Any] = {"name": "Repository", "children": {}}
             
             for path, count in dir_counts.items():
                 parts = path.split('/')
                 if len(parts) > 4: continue # Slightly deeper depth (4 instead of 3)
                 
-                curr = root["children"]
+                curr = root["children"] # type: ignore
                 for i, part in enumerate(parts):
-                    if part not in curr:
-                        curr[part] = {"name": part, "children": {}, "value": 0}
+                    if part not in curr: # type: ignore
+                        curr[part] = {"name": part, "children": {}, "value": 0} # type: ignore
                     
                     if i == len(parts) - 1:
-                        curr[part]["value"] += count
-                    curr = curr[part]["children"]
+                        curr[part]["value"] += count # type: ignore
+                    curr = curr[part]["children"] # type: ignore
 
             # Convert to list recursively
             def finalize(node):
